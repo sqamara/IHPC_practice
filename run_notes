@@ -1,0 +1,15 @@
+### to compile
+$ bin/hadoop com.sun.tools.javac.Main WordCount.java
+$ jar cf wc.jar WordCount*.class
+### to add files to HDFS
+hdfs dfs -put ./sample_text_files/input/
+#same as
+hadoop fs -put ./sample_text_files/input/
+### to run
+bin/hadoop jar wc.jar WordCount /user/joe/wordcount/input /user/sebastian/wordcount/output
+### to verify 
+bin/hadoop fs -cat /user/joe/wordcount/output/part-r-00000
+
+
+###
+you cannot specify any sort of header variables to data files!  hadoop splits files based on number of nodes
