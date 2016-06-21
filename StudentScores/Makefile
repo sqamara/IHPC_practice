@@ -6,3 +6,6 @@ compile:
 run: compile
 	hadoop jar sd.jar StudentDetector sample_student_scores/input sample_student_scores/output
 	hadoop fs -cat sample_student_scores/output/part-r-00000
+verify:
+	javac Verify.java
+	java Verify
