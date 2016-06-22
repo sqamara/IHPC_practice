@@ -1,8 +1,15 @@
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.EOFException; 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.EOFException;
+import java.util.ArrayList;
+import java.util.Scanner;
 import java.util.StringTokenizer;
-
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.Text;
@@ -12,11 +19,10 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.util.ArrayList;
-public class StudentDetector {
 
+
+public class StudentDetector {
+    static boolean verbose = false;
     public static class ClassScoreMapper
             extends Mapper<Object, Text, Text, IntV3Writable>
         {
@@ -63,12 +69,12 @@ public class StudentDetector {
                     ) throws IOException, InterruptedException 
             {
                 Configuration conf = context.getConfiguration();
-                double cutoff = conf.getDouble("cutoff", 100);
                 StringTokenizer itr = new StringTokenizer(value.toString());
 
                 while (itr.hasMoreTokens()) {
                     student.set(itr.nextToken());
                     String className = itr.nextToken();
+                    double cutoff = conf.getDouble(className, 100);
                     int score = Integer.parseInt(itr.nextToken());
                     if (score < cutoff) {
                         StringArrayListWritable classesWritable = 
@@ -81,44 +87,60 @@ public class StudentDetector {
     public static class StudentClassesReducer
             extends Reducer<Text, StringArrayListWritable, Text, 
                             StringArrayListWritable> 
-        {
-            public void reduce(Text key, 
-                    Iterable<StringArrayListWritable> values, 
-                    Context context) 
-                throws IOException, InterruptedException 
-            {
-                StringArrayListWritable allClasses = new StringArrayListWritable();
+                {
+                    public void reduce(Text key, 
+                            Iterable<StringArrayListWritable> values, 
+                            Context context) 
+                        throws IOException, InterruptedException 
+                    {
+                        StringArrayListWritable allClasses = new StringArrayListWritable();
 
-                for (StringArrayListWritable array : values) {
-                    allClasses.combine(array);
-                    array.list.clear(); // this is needed, for some reason the iterator combines each StringArrayListWritable
+                        for (StringArrayListWritable array : values) {
+                            allClasses.combine(array);
+                            array.list.clear(); // this is needed, for some reason the iterator combines each StringArrayListWritable
+                        }
+                        context.write(key, allClasses);
+                    }   
                 }
-                context.write(key, allClasses);
-            }   
-        }
     public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();
-        //        Job job = Job.getInstance(conf, "Class Data");
-        //        job.setJarByClass(StudentDetector.class);
-        //        job.setMapperClass(ClassScoreMapper.class);
-        //        job.setCombinerClass(ClassSumScoreReducer.class);
-        //        job.setReducerClass(ClassSumScoreReducer.class);
-        //        job.setOutputKeyClass(Text.class);
-        //        job.setOutputValueClass(IntV3Writable.class);
-        //        FileInputFormat.addInputPath(job, new Path(args[0]));
-        //        FileOutputFormat.setOutputPath(job, new Path(args[1]));
-        //
-        //        if (!job.waitForCompletion(true))
-        //            System.exit(1);
+        Job job = Job.getInstance(conf, "Class Data");
+        job.setJarByClass(StudentDetector.class);
+        job.setMapperClass(ClassScoreMapper.class);
+        job.setCombinerClass(ClassSumScoreReducer.class);
+        job.setReducerClass(ClassSumScoreReducer.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntV3Writable.class);
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
-        //        double average = (double)(sum)/count;
-        //        double square_sum_average = (double)(square_sum)/count;
-        //        double standard_deviation = Math.sqrt(square_sum_average-
-        //                average*average);
-        //        double cutoff = average-standard_deviation;
+        if (!job.waitForCompletion(verbose))
+            System.exit(1);
 
+        // make the output data of job1 part of configuration
+        FileSystem fs = FileSystem.get(conf);
+        FSDataInputStream is = fs.open(FileOutputFormat.getOutputPath(job).suffix("/part-r-00000"));
+        
+        String line =      is.readLine(); 
+        while (line != null) {
+            String[] tokens = line.split("\t");
+            System.out.println(line + " " + tokens.length);
+            String name = tokens[0];
+            int count =        Integer.parseInt(tokens[1]); 
+            int sum =          Integer.parseInt(tokens[2]); 
+            int square_sum =   Integer.parseInt(tokens[3]);  
 
-        conf.set("cutoff", "50");
+            double average = (double)(sum)/count;
+            double square_sum_average = (double)(square_sum)/count;
+            double standard_deviation = Math.sqrt(square_sum_average-
+                    average*average);
+            double cutoff = average-standard_deviation;
+
+            conf.set(name, String.valueOf(cutoff));
+            
+            line =      is.readLine(); 
+        }
+
         Job job2 = Job.getInstance(conf, "Student Data");
         job2.setJarByClass(StudentDetector.class);
         job2.setMapperClass(StudentClassScoreMapper.class);
@@ -131,7 +153,7 @@ public class StudentDetector {
         FileInputFormat.addInputPath(job2, new Path(args[0]));
         FileOutputFormat.setOutputPath(job2, new Path(args[2]));
 
-        System.exit(job2.waitForCompletion(true) ? 0 : 1);
+        System.exit(job2.waitForCompletion(verbose) ? 0 : 1);
     }
 
     private static class IntV3Writable implements Writable {
