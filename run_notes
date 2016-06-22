@@ -11,5 +11,6 @@ bin/hadoop jar wc.jar WordCount /user/joe/wordcount/input /user/sebastian/wordco
 bin/hadoop fs -cat /user/joe/wordcount/output/part-r-00000
 
 
-###
+### WEIRD RESTRIANTS OF HADOOP
 you cannot specify any sort of header variables to data files!  hadoop splits files based on number of nodes
+Combiner's input/output key and value types must match the output types of your Mapper.

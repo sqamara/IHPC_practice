@@ -58,10 +58,10 @@ public class Verify {
                     String class_name = input.next();
                     int score = Integer.parseInt(input.next());
                     if (class_name.equals("History")){
-                        if (score < cutoff_hist)
+                        if (score < 50)//cutoff_hist)
                         System.out.println(student_name+ " History");
                     } else if (class_name.equals("Math")){
-                        if (score < cutoff_hist)
+                        if (score < 50)//cutoff_hist)
                         System.out.println(student_name+ " Math");
                     }
                 }
