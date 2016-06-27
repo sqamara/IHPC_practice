@@ -49,6 +49,8 @@ public class Verify {
         double standard_deviation_math = Math.sqrt(square_sum_average_math-
             average_math*average_math);
         double cutoff_math = average_math-standard_deviation_math;
+        System.out.println("cutoff_hist = " + cutoff_hist);
+        System.out.println("cutoff_math = " + cutoff_math);
 
         for (File file : listOfFiles) {
             if (file.isFile()) {
@@ -58,10 +60,10 @@ public class Verify {
                     String class_name = input.next();
                     int score = Integer.parseInt(input.next());
                     if (class_name.equals("History")){
-                        if (score < 50)//cutoff_hist)
+                        if (score < cutoff_hist)
                         System.out.println(student_name+ " History");
                     } else if (class_name.equals("Math")){
-                        if (score < 50)//cutoff_hist)
+                        if (score < cutoff_math)
                         System.out.println(student_name+ " Math");
                     }
                 }

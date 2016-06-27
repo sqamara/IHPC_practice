@@ -135,7 +135,7 @@ public class StudentDetector {
             double standard_deviation = Math.sqrt(square_sum_average-
                     average*average);
             double cutoff = average-standard_deviation;
-
+            System.out.println(name + " = " + cutoff);
             conf.set(name, String.valueOf(cutoff));
             
             line =      is.readLine(); 
