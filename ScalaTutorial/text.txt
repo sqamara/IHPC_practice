@@ -1,0 +1,4 @@
+This is a text file.
+It has two lines.
+Now it has three.
+And maybe even four.

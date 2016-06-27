@@ -1,3 +1,7 @@
 *.class
 *.jar
 *-checkpoint.ipynb
+ScalaTutorial/SimpleApp/project/
+ScalaTutorial/SimpleApp/target/
+ScalaTutorial/WordCountApp/project/
+ScalaTutorial/WordCountApp/target/
